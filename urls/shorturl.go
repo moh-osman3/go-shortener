@@ -1,9 +1,12 @@
 package urls
 
 import (
-	"net/http"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type ShortUrl interface {
 	GetId() string
@@ -11,53 +14,61 @@ type ShortUrl interface {
 	GetExpiry() time.Time
 	AddCall(timestamp time.Time)
 	GetSummary() string
-	fetchUrlContent(longUrl string) (*http.Response, error)
+	Marshal() ([]byte, error)
+	Unmarshal([]byte) error
 }
 
 type defaultShortUrl struct {
-	id string 
-	longUrl string
-	expiry time.Time
-	creationTime time.Time
-	counter *counter
+	// export these fields for json marshaling
+	Id string `json:"id"` 
+	LongUrl string `json:"long_url"`
+	Expiry time.Time `json:"expiry"`
+	CreationTime time.Time `json:"creation_time"`
+	Counter *Counter `json:"counter"`
+}
+
+func (su *defaultShortUrl) Marshal() ([]byte, error) {
+	return json.Marshal(su)
+}
+
+func (su *defaultShortUrl) Unmarshal(data []byte) (error) {
+	return json.Unmarshal(data, su)
 }
 
 func (su *defaultShortUrl) AddCall(timestamp time.Time) {
-	su.counter.AddCall(timestamp)
+	su.Counter.AddCall(timestamp)
 }
 
 func (su *defaultShortUrl) GetSummary() string {
-	return su.counter.GetSummary()
+	return su.Counter.GetSummary()
 }
 
 func NewDefaultShortUrl(id string, longUrl string, expiry time.Duration) ShortUrl {
 	su := &defaultShortUrl{
-		id: id,
-		longUrl: longUrl,
-		creationTime: time.Now(),
-		counter: NewCounter(),
+		Id: id,
+		LongUrl: longUrl,
+		CreationTime: time.Now(),
+		Counter: NewCounter(),
 	}
 
 	if expiry == 0 {
 		// default behavior
-		su.expiry = time.Now().AddDate(1, 0, 0)
+		su.Expiry = time.Now().AddDate(1, 0, 0)
 	} else if expiry < 0 {
-		su.expiry = time.Time{}
+		su.Expiry = time.Time{}
 	} else {
-		su.expiry = time.Now().Add(expiry)
+		su.Expiry = time.Now().Add(expiry)
 	}
 	return su
 }
 
 func (su *defaultShortUrl) GetId() string {
-	return su.id
+	return su.Id
 }
 func (su *defaultShortUrl) GetExpiry() time.Time {
-	return su.expiry
+	return su.Expiry
 }
 
 func (su *defaultShortUrl) GetLongUrl() string {
-	return su.longUrl
+	return su.LongUrl
 }
-
-func (su *defaultShortUrl) fetchUrlContent(longUrl string) (*http.Response, error) {return nil, nil}
