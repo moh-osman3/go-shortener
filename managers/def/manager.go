@@ -20,8 +20,6 @@ func NewUrlManager() managers.UrlManager {
 	return &defaultUrlManager{db:make(map[string]urls.ShortUrl)}
 }
 
-
-
 func (m *defaultUrlManager) scanAndDelete() {
 	for key, val := range m.db {
 		fmt.Println(time.Now().After(val.GetExpiry()))
@@ -31,6 +29,7 @@ func (m *defaultUrlManager) scanAndDelete() {
 		}
 	}
 }
+
 func (m *defaultUrlManager) Start(ctx context.Context) error {
 
 	go func() {
