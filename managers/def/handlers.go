@@ -9,7 +9,28 @@ import (
 	"time"
 )
 
-func (m *defaultUrlManager) GetSummaryHandleFunc(w http.ResponseWriter, r *http.Request) {
+type deleteData struct {
+	Id string `json:"id"`
+}
+
+func (m *defaultUrlManager) DeleteUrlHandleFunc(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	fmt.Println("body")
+	fmt.Println(body)
+	if err != nil {
+		io.WriteString(w, err.Error())
+		return
+	}
+	var deleteData deleteData
+	json.Unmarshal(body, &deleteData)
+
+	err = m.deleteShortUrl(deleteData.Id)
+	if err != nil {
+		io.WriteString(w, err.Error())
+		return
+	}
+
+	io.WriteString(w, "Successfully deleted short url!")
 }
 
 func (m *defaultUrlManager) GetUrlHandleFunc(w http.ResponseWriter, r *http.Request) {
@@ -23,6 +44,7 @@ func (m *defaultUrlManager) GetUrlHandleFunc(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	fmt.Println(m.db)
 	shortUrl, ok := m.db[paths[0]]
 	
 	if !ok || shortUrl == nil {
@@ -66,6 +88,7 @@ func (m *defaultUrlManager) CreateUrlHandleFunc(w http.ResponseWriter, r *http.R
 	shortUrl, err := m.createShortUrl(createData.Url, expiry)
 	if err != nil {
 		io.WriteString(w, err.Error())
+		return
 	}
 	io.WriteString(w, fmt.Sprintf("Successfully created short url: http://localhost:3030/%s", shortUrl.GetId()))
 }
