@@ -5,8 +5,9 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/moh-osman3/shortener/urls"
 	"github.com/moh-osman3/shortener/managers"
@@ -14,16 +15,18 @@ import (
 
 type defaultUrlManager struct {
 	db map[string]urls.ShortUrl
+	logger *zap.Logger
 }
 
-func NewUrlManager() managers.UrlManager {
-	return &defaultUrlManager{db:make(map[string]urls.ShortUrl)}
+func NewDefaultUrlManager(logger *zap.Logger) managers.UrlManager {
+	return &defaultUrlManager{
+		db: make(map[string]urls.ShortUrl),
+		logger: logger,
+	}
 }
 
 func (m *defaultUrlManager) scanAndDelete() {
 	for key, val := range m.db {
-		fmt.Println(time.Now().After(val.GetExpiry()))
-		fmt.Println(val.GetExpiry())
 		// only delete shorturl if its not zero (no expiration)
 		if !val.GetExpiry().IsZero() && time.Now().After(val.GetExpiry()) {
 			m.deleteShortUrl(key)
@@ -32,6 +35,7 @@ func (m *defaultUrlManager) scanAndDelete() {
 }
 
 func (m *defaultUrlManager) Start(ctx context.Context) error {
+	m.logger.Info("manager.go: starting url manager")
 	go func() {
 		for {
 			m.scanAndDelete()
@@ -42,12 +46,14 @@ func (m *defaultUrlManager) Start(ctx context.Context) error {
 	return nil
 }
 
-func (m *defaultUrlManager) End() {}
+func (m *defaultUrlManager) End() {
+	m.logger.Info("manager.go: shutting down url manager")
+}
+
 func (m *defaultUrlManager) deleteShortUrl(key string) error {
-	fmt.Println("DELETING FROM DB")
-	fmt.Println(m.db[key])
+	m.logger.Debug("manager.go: deleting short url from db")
 	if _, ok := m.db[key]; !ok {
-		//log that key doesn't exist
+		m.logger.Debug("manager.go: deleting shorturl that does not exist")
 		return errors.New("deleting shorturl that does not exist")
 	}
 	delete(m.db, key)
@@ -80,8 +86,11 @@ func (m *defaultUrlManager) createShortUrl(longUrl string, expiry time.Duration)
 	}
 
 	if m.db == nil {
+		m.logger.Error("manager db cache not initialized")
 		return nil, errors.New("manager db cache not initialized")
 	}
+
+	m.logger.Debug("manager.go: successfully created short url")
 	
 	m.db[shortUrl.GetId()] = shortUrl 
 

@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+
+	"go.uber.org/zap"
+
 	"github.com/moh-osman3/shortener"
 	"github.com/moh-osman3/shortener/managers/def"
 )
@@ -10,7 +13,8 @@ import (
 
 func main() {
 	// create a start a urlManager
-	urlManager := def.NewUrlManager()
+	logger := zap.Must(zap.NewDevelopment())
+	urlManager := def.NewDefaultUrlManager(logger)
 	ctx := context.Background()
 	err := urlManager.Start(ctx)
 	if err != nil {
@@ -19,7 +23,7 @@ func main() {
 	defer urlManager.End()
 
 	// create and start server
-	server := shortener.NewServer(urlManager)
+	server := shortener.NewServer(urlManager, logger)
 	server.AddDefaultRoutes()
 	err = server.Serve()
 
