@@ -1,10 +1,11 @@
 package def
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-
+	"time"
 )
 
 func (m *defaultUrlManager) GetUrlHandleFunc(w http.ResponseWriter, r *http.Request) {
@@ -27,15 +28,30 @@ func (m *defaultUrlManager) GetUrlHandleFunc(w http.ResponseWriter, r *http.Requ
 	io.WriteString(w, shortUrl.GetLongUrl())
 }
 
+type reqData struct {
+	Url string `json:"url"`
+	Expiry string `json:"expiry"`
+}
+
 func (m *defaultUrlManager) CreateUrlHandleFunc(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	fmt.Println("body")
 	fmt.Println(body)
 	if err != nil {
 		io.WriteString(w, err.Error())
+		return
+	}
+	var reqData reqData
+	json.Unmarshal(body, &reqData)
+	fmt.Println("req data")
+	fmt.Println(reqData)
+	expiry, err := time.ParseDuration(reqData.Expiry)
+	if err != nil {
+		io.WriteString(w, err.Error())
+		return
 	}
 
-	shortUrl, err := m.createShortUrl(string(body))
+	shortUrl, err := m.createShortUrl(reqData.Url, expiry)
 	if err != nil {
 		io.WriteString(w, err.Error())
 	}
