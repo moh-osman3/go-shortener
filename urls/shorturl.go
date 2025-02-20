@@ -43,21 +43,21 @@ func (su *defaultShortUrl) GetSummary() string {
 	return su.Counter.GetSummary()
 }
 
-func NewDefaultShortUrl(id string, longUrl string, expiry time.Duration) ShortUrl {
+func NewDefaultShortUrl(id string, longUrl string, expiry time.Duration, timestamp time.Time) ShortUrl {
 	su := &defaultShortUrl{
 		Id: id,
 		LongUrl: longUrl,
-		CreationTime: time.Now(),
+		CreationTime: timestamp,
 		Counter: NewCounter(),
 	}
 
 	if expiry == 0 {
 		// default behavior
-		su.Expiry = time.Now().AddDate(1, 0, 0)
+		su.Expiry = timestamp.AddDate(1, 0, 0)
 	} else if expiry < 0 {
 		su.Expiry = time.Time{}
 	} else {
-		su.Expiry = time.Now().Add(expiry)
+		su.Expiry = timestamp.Add(expiry)
 	}
 	return su
 }
@@ -65,6 +65,7 @@ func NewDefaultShortUrl(id string, longUrl string, expiry time.Duration) ShortUr
 func (su *defaultShortUrl) GetId() string {
 	return su.Id
 }
+
 func (su *defaultShortUrl) GetExpiry() time.Time {
 	return su.Expiry
 }

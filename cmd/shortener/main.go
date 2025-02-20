@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
-	"github.com/redis/go-redis/v9"
+	"github.com/syndtr/goleveldb/leveldb"
 
 	"github.com/moh-osman3/shortener"
 	"github.com/moh-osman3/shortener/managers/def"
@@ -13,25 +13,22 @@ import (
 
 
 func main() {
-	// create db from redis quickstart docs
-	client := redis.NewClient(&redis.Options{
-        Addr:	  "localhost:6379",
-        Password: "", // No password set
-        DB:		  0,  // Use default DB
-        Protocol: 2,  // Connection protocol
-    })
+	client, err := leveldb.OpenFile(".", nil)
+	if err != nil {
+		panic(err)
+	}
 	// create a start a urlManager
 	logger := zap.Must(zap.NewDevelopment())
 	urlManager := def.NewDefaultUrlManager(logger, client)
 	ctx := context.Background()
-	err := urlManager.Start(ctx)
+	err = urlManager.Start(ctx)
 	if err != nil {
 		//log error
 	}
 	defer urlManager.End()
 
 	// create and start server
-	server := shortener.NewServer(urlManager, logger)
+	server := shortener.NewServer(urlManager, logger, "3030")
 	server.AddDefaultRoutes()
 	err = server.Serve()
 

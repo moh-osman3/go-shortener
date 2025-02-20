@@ -22,12 +22,11 @@ func (m *defaultUrlManager) DeleteUrlHandleFunc(w http.ResponseWriter, r *http.R
 	var deleteData deleteData
 	json.Unmarshal(body, &deleteData)
 
-	err = m.deleteShortUrlFromCache(deleteData.Id)
+	err = m.deleteKeyFromCacheAndDb(deleteData.Id)
 	if err != nil {
 		io.WriteString(w, err.Error())
 		return
 	}
-	err = m.deleteShortUrlFromDb(deleteData.Id)
 
 	io.WriteString(w, "Successfully deleted short url!")
 }
@@ -51,6 +50,8 @@ func (m *defaultUrlManager) GetUrlHandleFunc(w http.ResponseWriter, r *http.Requ
 	// This is a normal short url request and not a summary request
 	if len(paths) == 1 {
 		shortUrl.AddCall(time.Now())
+		fmt.Println("summary")
+		fmt.Println(shortUrl.GetSummary())
 		io.WriteString(w, shortUrl.GetLongUrl())
 		return
 	}
