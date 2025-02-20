@@ -30,10 +30,10 @@ func (mdb *mockDB) Get(key []byte, ro *opt.ReadOptions) ([]byte, error) {
 		return []byte{}, errors.New("value not found in mockdb")
 	}
 
-	return val,  nil
+	return val, nil
 }
 
-func (mdb *mockDB) Put(key, value []byte,  wo *opt.WriteOptions) error {
+func (mdb *mockDB) Put(key, value []byte, wo *opt.WriteOptions) error {
 	mdb.db[string(key)] = value
 	return nil
 }
@@ -41,12 +41,14 @@ func (mdb *mockDB) Delete(key []byte, wo *opt.WriteOptions) error {
 	delete(mdb.db, string(key))
 	return nil
 }
-func (mdb *mockDB) NewIterator(slice *util.Range, ro *opt.ReadOptions) iterator.Iterator {return iterator.NewEmptyIterator(nil)}
+func (mdb *mockDB) NewIterator(slice *util.Range, ro *opt.ReadOptions) iterator.Iterator {
+	return iterator.NewEmptyIterator(nil)
+}
 
 func TestCreateAndGetUrl(t *testing.T) {
 	defManager := &defaultUrlManager{
-		cache: make(map[string]urls.ShortUrl),
-		logger: zap.NewNop(),
+		cache:   make(map[string]urls.ShortUrl),
+		logger:  zap.NewNop(),
 		leveldb: NewMockDB(),
 	}
 
@@ -62,7 +64,7 @@ func TestCreateAndGetUrl(t *testing.T) {
 	fetchedSurl, err := defManager.getShortUrlFromStore(expectedId)
 	assert.NoError(t, err)
 	assert.NotNil(t, fetchedSurl)
-	assert.Equal(t, expectedId , fetchedSurl.GetId())
+	assert.Equal(t, expectedId, fetchedSurl.GetId())
 	assert.Equal(t, createdSurl.GetLongUrl(), fetchedSurl.GetLongUrl())
 	assert.Equal(t, createdSurl.GetExpiry(), fetchedSurl.GetExpiry())
 	assert.Equal(t, createdSurl.GetSummary(), fetchedSurl.GetSummary())
@@ -83,8 +85,8 @@ func TestCreateAndGetUrl(t *testing.T) {
 
 func TestDeleteUrl(t *testing.T) {
 	defManager := &defaultUrlManager{
-		cache: make(map[string]urls.ShortUrl),
-		logger: zap.NewNop(),
+		cache:   make(map[string]urls.ShortUrl),
+		logger:  zap.NewNop(),
 		leveldb: NewMockDB(),
 	}
 
@@ -117,8 +119,8 @@ func TestDeleteUrl(t *testing.T) {
 
 func TestAddCallToShortUrl(t *testing.T) {
 	defManager := &defaultUrlManager{
-		cache: make(map[string]urls.ShortUrl),
-		logger: zap.NewNop(),
+		cache:   make(map[string]urls.ShortUrl),
+		logger:  zap.NewNop(),
 		leveldb: NewMockDB(),
 	}
 
@@ -139,7 +141,7 @@ func TestAddCallToShortUrl(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, fetchedSurl)
-	assert.Equal(t, expectedId , fetchedSurl.GetId())
+	assert.Equal(t, expectedId, fetchedSurl.GetId())
 	assert.Equal(t, createdSurl.GetSummary(), fetchedSurl.GetSummary())
 
 	// confirm instrumentation persisted to cache and db

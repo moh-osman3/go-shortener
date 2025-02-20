@@ -50,7 +50,7 @@ func (m *defaultUrlManager) GetUrlHandleFunc(w http.ResponseWriter, r *http.Requ
 	}
 
 	shortUrl, err := m.getShortUrlFromStore(paths[0])
-	
+
 	if err != nil || shortUrl == nil {
 		io.WriteString(w, "Short url does not exist")
 		return
@@ -72,7 +72,7 @@ func (m *defaultUrlManager) GetUrlHandleFunc(w http.ResponseWriter, r *http.Requ
 }
 
 type createData struct {
-	Url string `json:"url"`
+	Url    string `json:"url"`
 	Expiry string `json:"expiry"`
 }
 

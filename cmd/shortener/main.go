@@ -3,13 +3,12 @@ package main
 import (
 	"context"
 
-	"go.uber.org/zap"
 	"github.com/syndtr/goleveldb/leveldb"
+	"go.uber.org/zap"
 
 	"github.com/moh-osman3/shortener"
 	"github.com/moh-osman3/shortener/managers/def"
 )
-
 
 func main() {
 	logger := zap.Must(zap.NewDevelopment())

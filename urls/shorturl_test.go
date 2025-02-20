@@ -34,12 +34,12 @@ func TestExpiry(t *testing.T) {
 
 	timestamp = time.Now()
 	expiry = -1 * time.Minute
-	surl = NewDefaultShortUrl(id, longUrl, expiry, timestamp) 
+	surl = NewDefaultShortUrl(id, longUrl, expiry, timestamp)
 	assert.Equal(t, time.Time{}, surl.GetExpiry())
 
 	timestamp = time.Now()
 	expiry = 0 * time.Minute
-	surl = NewDefaultShortUrl(id, longUrl, expiry, timestamp) 
+	surl = NewDefaultShortUrl(id, longUrl, expiry, timestamp)
 	assert.Equal(t, timestamp.AddDate(1, 0, 0), surl.GetExpiry())
 }
 

@@ -20,18 +20,18 @@ type ShortUrl interface {
 
 type defaultShortUrl struct {
 	// export these fields for json marshaling
-	Id string `json:"id"` 
-	LongUrl string `json:"long_url"`
-	Expiry time.Time `json:"expiry"`
+	Id           string    `json:"id"`
+	LongUrl      string    `json:"long_url"`
+	Expiry       time.Time `json:"expiry"`
 	CreationTime time.Time `json:"creation_time"`
-	Counter *Counter `json:"counter"`
+	Counter      *Counter  `json:"counter"`
 }
 
 func (su *defaultShortUrl) Marshal() ([]byte, error) {
 	return json.Marshal(su)
 }
 
-func (su *defaultShortUrl) Unmarshal(data []byte) (error) {
+func (su *defaultShortUrl) Unmarshal(data []byte) error {
 	return json.Unmarshal(data, su)
 }
 
@@ -45,10 +45,10 @@ func (su *defaultShortUrl) GetSummary() string {
 
 func NewDefaultShortUrl(id string, longUrl string, expiry time.Duration, timestamp time.Time) ShortUrl {
 	su := &defaultShortUrl{
-		Id: id,
-		LongUrl: longUrl,
+		Id:           id,
+		LongUrl:      longUrl,
 		CreationTime: timestamp,
-		Counter: NewCounter(),
+		Counter:      NewCounter(),
 	}
 
 	if expiry == 0 {

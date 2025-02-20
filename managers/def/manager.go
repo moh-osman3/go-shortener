@@ -13,29 +13,29 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"go.uber.org/zap"
 
-	"github.com/moh-osman3/shortener/urls"
 	"github.com/moh-osman3/shortener/managers"
+	"github.com/moh-osman3/shortener/urls"
 )
 
 // this helps with testing with a mock db
 type DB interface {
 	Get(key []byte, ro *opt.ReadOptions) ([]byte, error)
-	Put(key, value []byte,  wo *opt.WriteOptions) error
+	Put(key, value []byte, wo *opt.WriteOptions) error
 	Delete(key []byte, wo *opt.WriteOptions) error
 	NewIterator(slice *util.Range, ro *opt.ReadOptions) iterator.Iterator
 }
 
 type defaultUrlManager struct {
-	cache map[string]urls.ShortUrl
+	cache   map[string]urls.ShortUrl
 	leveldb DB
-	logger *zap.Logger
-	lock sync.RWMutex
+	logger  *zap.Logger
+	lock    sync.RWMutex
 }
 
 func NewDefaultUrlManager(logger *zap.Logger, levelDb DB) managers.UrlManager {
 	return &defaultUrlManager{
-		cache: make(map[string]urls.ShortUrl),
-		logger: logger,
+		cache:   make(map[string]urls.ShortUrl),
+		logger:  logger,
 		leveldb: levelDb,
 	}
 }
@@ -96,7 +96,7 @@ func (m *defaultUrlManager) Start(ctx context.Context) error {
 	go func() {
 		for {
 			// todo: make this configurable
-			time.Sleep(10*time.Second)
+			time.Sleep(10 * time.Second)
 			m.scanAndDeleteCache()
 		}
 	}()
@@ -105,7 +105,7 @@ func (m *defaultUrlManager) Start(ctx context.Context) error {
 		for {
 			// todo: make this configurable
 			// in case db has a lot more keys than db, clean up expired keys less frequently
-			time.Sleep(300*time.Second)
+			time.Sleep(300 * time.Second)
 			m.scanAndDeleteDb()
 		}
 	}()
@@ -153,8 +153,8 @@ func (m *defaultUrlManager) generateShortUrl(longUrl string, expiry time.Duratio
 
 	// didn't find in cache so check db
 	val, err := m.leveldb.Get([]byte(hashStr), nil)
-	shortUrl = nil 
-	if (err == nil) {
+	shortUrl = nil
+	if err == nil {
 		shortUrl = urls.NewDefaultShortUrl("", "", time.Second, time.Now())
 		shortUrl.Unmarshal([]byte(val))
 	}
@@ -194,10 +194,10 @@ func (m *defaultUrlManager) createShortUrl(longUrl string, expiry time.Duration)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	m.cache[shortUrl.GetId()] = shortUrl 
+	m.cache[shortUrl.GetId()] = shortUrl
 	err = m.leveldb.Put([]byte(shortUrl.GetId()), shortUrlStr, nil)
 
 	return shortUrl, err
@@ -213,8 +213,8 @@ func (m *defaultUrlManager) getShortUrlFromStore(key string) (urls.ShortUrl, err
 	}
 
 	val, err := m.leveldb.Get([]byte(key), nil)
-	shortUrl = nil 
-	if (err == nil) {
+	shortUrl = nil
+	if err == nil {
 		shortUrl = urls.NewDefaultShortUrl("", "", time.Second, time.Now())
 		shortUrl.Unmarshal([]byte(val))
 	}
