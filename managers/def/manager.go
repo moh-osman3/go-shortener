@@ -208,3 +208,25 @@ func (m *defaultUrlManager) getShortUrlFromStore(key string) (urls.ShortUrl, err
 
 	return shortUrl, err
 }
+
+func (m *defaultUrlManager) AddCallToCacheAndDb(shortUrl urls.ShortUrl) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	shortUrl.AddCall(time.Now())
+
+	// update cache with new value
+	m.cache[shortUrl.GetId()] = shortUrl
+
+	shortUrlStr, err := shortUrl.Marshal()
+
+	if err != nil {
+		m.logger.Error("manager.go: failed to save update shortUrl to db", zap.Error(err))
+		return
+	}
+
+	err = m.leveldb.Put([]byte(shortUrl.GetId()), shortUrlStr, nil)
+
+	if err != nil {
+		m.logger.Error("manager.go: failed to save updated shortUrl to db", zap.Error(err))
+	}
+}

@@ -14,6 +14,10 @@ type deleteData struct {
 }
 
 func (m *defaultUrlManager) DeleteUrlHandleFunc(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		io.WriteString(w, "Invalid method: expected DELETE request")
+		return
+	}
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		io.WriteString(w, err.Error())
@@ -32,6 +36,11 @@ func (m *defaultUrlManager) DeleteUrlHandleFunc(w http.ResponseWriter, r *http.R
 }
 
 func (m *defaultUrlManager) GetUrlHandleFunc(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		io.WriteString(w, "Invalid method: expected GET request")
+		return
+	}
+
 	path := r.URL.Path[1:]
 	paths := strings.Split(path, "/")
 	if len(paths) == 0 || paths[0] == "" {
@@ -49,14 +58,17 @@ func (m *defaultUrlManager) GetUrlHandleFunc(w http.ResponseWriter, r *http.Requ
 
 	// This is a normal short url request and not a summary request
 	if len(paths) == 1 {
-		shortUrl.AddCall(time.Now())
-		fmt.Println("summary")
-		fmt.Println(shortUrl.GetSummary())
+		m.AddCallToCacheAndDb(shortUrl)
 		io.WriteString(w, shortUrl.GetLongUrl())
 		return
 	}
 
-	io.WriteString(w, shortUrl.GetSummary())
+	if len(paths) == 2 && paths[1] == "summary" {
+		io.WriteString(w, shortUrl.GetSummary())
+		return
+	}
+
+	io.WriteString(w, "Invalid GET endpoint")
 }
 
 type createData struct {
@@ -65,6 +77,10 @@ type createData struct {
 }
 
 func (m *defaultUrlManager) CreateUrlHandleFunc(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		io.WriteString(w, "Invalid method: expected POST request")
+		return
+	}
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		io.WriteString(w, err.Error())
