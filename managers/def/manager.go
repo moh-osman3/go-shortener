@@ -225,7 +225,7 @@ func (m *defaultUrlManager) getShortUrlFromStore(key string) (urls.ShortUrl, err
 	shortUrl, ok := m.cache[key]
 
 	if ok {
-		return shortUrl, nil
+		return m.isExpired(shortUrl)
 	}
 
 	val, err := m.leveldb.Get([]byte(key), nil)
@@ -233,9 +233,17 @@ func (m *defaultUrlManager) getShortUrlFromStore(key string) (urls.ShortUrl, err
 	if err == nil {
 		shortUrl = urls.NewDefaultShortUrl("", "", time.Second, time.Now())
 		shortUrl.Unmarshal([]byte(val))
+		return m.isExpired(shortUrl)
 	}
 
 	return shortUrl, err
+}
+
+func (m *defaultUrlManager) isExpired(shortUrl urls.ShortUrl) (urls.ShortUrl, error) {
+	if !shortUrl.GetExpiry().IsZero() && time.Now().After(shortUrl.GetExpiry()) {
+		return nil, errors.New("managers.go: shortUrl expired")
+	}
+	return shortUrl, nil
 }
 
 func (m *defaultUrlManager) AddCallToCacheAndDb(shortUrl urls.ShortUrl) {
