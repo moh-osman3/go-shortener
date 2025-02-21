@@ -59,7 +59,7 @@ func (m *defaultUrlManager) GetUrlHandleFunc(w http.ResponseWriter, r *http.Requ
 	// This is a normal short url request and not a summary request
 	if len(paths) == 1 {
 		m.AddCallToCacheAndDb(shortUrl)
-		io.WriteString(w, shortUrl.GetLongUrl())
+		http.Redirect(w, r, shortUrl.GetLongUrl(), http.StatusFound)
 		return
 	}
 
