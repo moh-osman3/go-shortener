@@ -11,7 +11,6 @@ import(
 type server struct {
 	manager managers.UrlManager
 	logger *zap.Logger
-	// TODO put a real db here
 }
 
 func NewServer(m managers.UrlManager, logger *zap.Logger) *server {
