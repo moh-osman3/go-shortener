@@ -15,8 +15,6 @@ type deleteData struct {
 
 func (m *defaultUrlManager) DeleteUrlHandleFunc(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
-	fmt.Println("body")
-	fmt.Println(body)
 	if err != nil {
 		io.WriteString(w, err.Error())
 		return
@@ -36,15 +34,12 @@ func (m *defaultUrlManager) DeleteUrlHandleFunc(w http.ResponseWriter, r *http.R
 func (m *defaultUrlManager) GetUrlHandleFunc(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path[1:]
 	paths := strings.Split(path, "/")
-	fmt.Println("PATHS")
-	fmt.Println(paths[0])
 	if len(paths) == 0 || paths[0] == "" {
 		//log
 		io.WriteString(w, "Not a valid short url")
 		return
 	}
 
-	fmt.Println(m.db)
 	shortUrl, ok := m.db[paths[0]]
 	
 	if !ok || shortUrl == nil {
@@ -69,16 +64,12 @@ type createData struct {
 
 func (m *defaultUrlManager) CreateUrlHandleFunc(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
-	fmt.Println("body")
-	fmt.Println(body)
 	if err != nil {
 		io.WriteString(w, err.Error())
 		return
 	}
 	var createData createData
 	json.Unmarshal(body, &createData)
-	fmt.Println("req data")
-	fmt.Println(createData)
 	expiry, err := time.ParseDuration(createData.Expiry)
 	if err != nil {
 		io.WriteString(w, err.Error())
