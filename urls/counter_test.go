@@ -49,9 +49,9 @@ func TestCounterEdge(t *testing.T) {
 	c := NewCounter()
 
 	// should not count as today, but count as this week
-	exactlyOneDay := time.Now().Add(-24*time.Hour)
+	exactlyOneDay := time.Now().Add(-24 * time.Hour)
 	// should not count as this week, but counts in total
-	exactlyOneWeek := time.Now().Add(-7*24*time.Hour)
+	exactlyOneWeek := time.Now().Add(-7 * 24 * time.Hour)
 
 	c.AddCall(exactlyOneDay)
 	c.AddCall(exactlyOneWeek)
