@@ -39,7 +39,6 @@ func (d *Date) UnmarshalText(text []byte) error {
 		return errors.New("error converting string to integers")
 	}
 
-
 	d.Year = year
 	d.Month = month
 	d.Day = day
