@@ -26,18 +26,18 @@ type DB interface {
 }
 
 type defaultUrlManager struct {
-	cache   map[string]urls.ShortUrl
-	leveldb DB
-	logger  *zap.Logger
-	lock    sync.RWMutex
+	cache      map[string]urls.ShortUrl
+	leveldb    DB
+	logger     *zap.Logger
+	lock       sync.RWMutex
 	shutdownCh chan struct{}
 }
 
 func NewDefaultUrlManager(logger *zap.Logger, levelDb DB) managers.UrlManager {
 	return &defaultUrlManager{
-		cache:   make(map[string]urls.ShortUrl),
-		logger:  logger,
-		leveldb: levelDb,
+		cache:      make(map[string]urls.ShortUrl),
+		logger:     logger,
+		leveldb:    levelDb,
 		shutdownCh: make(chan struct{}, 1),
 	}
 }
@@ -104,7 +104,7 @@ func (m *defaultUrlManager) Start(ctx context.Context, cacheInterval time.Durati
 	go func() {
 		defer cacheTicker.Stop()
 		for {
-			select{
+			select {
 			case <-m.shutdownCh:
 				return
 			case <-cacheTicker.C:
@@ -116,7 +116,7 @@ func (m *defaultUrlManager) Start(ctx context.Context, cacheInterval time.Durati
 	go func() {
 		defer dbTicker.Stop()
 		for {
-			select{
+			select {
 			case <-m.shutdownCh:
 				return
 			case <-dbTicker.C:
