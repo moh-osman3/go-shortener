@@ -73,9 +73,11 @@ Putting it all together, the following request will delete the short url for www
 To run tests on the source code go to the root of the repository and run `go run ./... -v -race`
 
 Current code coverage:
+```
 github.com/moh-osman3/shortener              coverage: 66.7% of statements
 github.com/moh-osman3/shortener/managers/def coverage: 83.5% of statements
 github.com/moh-osman3/shortener/urls         coverage: 96.1% of statements
+```
 
 ## Design
 
