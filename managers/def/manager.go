@@ -5,6 +5,8 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"errors"
+	"math/rand"
+	"strconv"
 	"sync"
 	"time"
 
@@ -187,8 +189,13 @@ func (m *defaultUrlManager) generateShortUrl(longUrl string, expiry time.Duratio
 
 func (m *defaultUrlManager) createShortUrl(longUrl string, expiry time.Duration) (urls.ShortUrl, error) {
 	var shortUrl urls.ShortUrl
+	rand.Seed(time.Now().UnixNano())
 	// in case of hash collisions retry 10 times until you get a unique shortUrl.
 	for i := 0; i < 10; i++ {
+		if i > 0 {
+			n := rand.Intn(100000)
+			longUrl = longUrl + strconv.Itoa(n)
+		}
 		shortUrl = m.generateShortUrl(longUrl, expiry)
 		if shortUrl != nil {
 			break
