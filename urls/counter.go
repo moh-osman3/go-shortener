@@ -1,12 +1,17 @@
 package urls
 
 import (
+	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+	"sync"
 	"time"
 )
 
 type Counter struct {
 	NumCalls map[Date]int64
+	lock sync.RWMutex
 }
 
 type Date struct {
@@ -14,6 +19,33 @@ type Date struct {
 	Month int
 	Day int
 }
+
+func (d Date) MarshalText() ([]byte, error) {
+    return []byte(fmt.Sprintf("%d-%d-%d", d.Year, d.Month, d.Day)), nil
+}
+
+func (d *Date) UnmarshalText(text []byte) error {
+	parts := strings.Split(string(text), "-")
+
+	if len(parts) != 3 {
+		return errors.New("found date with incorrect format")
+	}
+
+	year, yerr := strconv.Atoi(parts[0])
+	month, merr := strconv.Atoi(parts[1])
+	day, derr := strconv.Atoi(parts[2])
+
+	if yerr != nil || merr != nil || derr != nil {
+		return errors.New("error converting string to integers")
+	}
+
+
+	d.Year = year
+	d.Month = month
+	d.Day = day
+    return nil
+}
+
 func NewDate(year,month,day int) Date {
 	return Date{
 		Year: year,
@@ -29,6 +61,8 @@ func NewCounter() *Counter {
 }
 
 func (c *Counter) AddCall(timestamp time.Time) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	y, m, d := timestamp.Date()
 
 	key := NewDate(int(y), int(m), int(d))
@@ -46,6 +80,8 @@ func (c *Counter) AddCall(timestamp time.Time) {
 // timestamps if they occured in the last 7 days and then keep a simple count for total calls.
 // or replace this with an otel instrumentation?
 func (c *Counter) GetSummary() string {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 	nowTime := time.Now()
 	nowYear, nowMonth, nowDay := nowTime.Date()
 	dayTotal := int64(0)
