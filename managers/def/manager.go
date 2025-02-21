@@ -254,7 +254,6 @@ func (m *defaultUrlManager) AddCallToCacheAndDb(shortUrl urls.ShortUrl) {
 	}
 
 	err = m.leveldb.Put([]byte(shortUrl.GetId()), shortUrlStr, nil)
-
 	if err != nil {
 		m.logger.Error("manager.go: failed to save updated shortUrl to db", zap.Error(err))
 	}
