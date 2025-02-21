@@ -198,6 +198,8 @@ func TestStartBackgroundCleanup(t *testing.T) {
 	defManager.End()
 
 	// confirm expiredSurl is deleted from cache and db
+	defManager.lock.RLock()
+	defer defManager.lock.RUnlock()
 	val, ok := defManager.cache[expiredSurl.GetId()]
 	assert.False(t, ok)
 	assert.Nil(t, val)
