@@ -158,7 +158,7 @@ func (m *defaultUrlManager) deleteShortUrlFromDb(key string) error {
 
 func (m *defaultUrlManager) generateShortUrl(longUrl string, expiry time.Duration) urls.ShortUrl {
 	hash := md5.Sum([]byte(longUrl))
-	hashStr := base64.StdEncoding.EncodeToString(hash[:])
+	hashStr := base64.URLEncoding.EncodeToString(hash[:])
 	shortUrl, ok := m.cache[hashStr]
 
 	if ok {

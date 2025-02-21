@@ -1,11 +1,11 @@
 ## URL Shortener Go Server
 
-A thread safe, scalable url shortening server with in-memory caching and durable storage.
+A scalable url shortening server with in-memory caching and durable storage.
 
 ## How to start the server
 1. `git clone https://github.com/moh-osman3/go-shortener.git`
-2. `cd shortener/`
-3. `go mod tidy` to fetch dependencies
+2. `cd go-shortener/`
+3. `go mod tidy` to help fetch dependencies
 4. `cd cmd/shortener`
 5. `go run .`
 
