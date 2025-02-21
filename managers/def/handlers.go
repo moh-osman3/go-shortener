@@ -5,30 +5,42 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
+func (m *defaultUrlManager) GetSummaryHandleFunc(w http.ResponseWriter, r *http.Request) {
+}
+
 func (m *defaultUrlManager) GetUrlHandleFunc(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path[1:]
-	if path == "" {
+	paths := strings.Split(path, "/")
+	fmt.Println("PATHS")
+	fmt.Println(paths[0])
+	if len(paths) == 0 || paths[0] == "" {
 		//log
 		io.WriteString(w, "Not a valid short url")
 		return
 	}
 
-	shortUrl, ok := m.db[path]
-	fmt.Println(m.db)
-	fmt.Println(path)
+	shortUrl, ok := m.db[paths[0]]
 	
 	if !ok || shortUrl == nil {
 		io.WriteString(w, "Short url does not exist")
 		return
 	}
 
-	io.WriteString(w, shortUrl.GetLongUrl())
+	// This is a normal short url request and not a summary request
+	if len(paths) == 1 {
+		shortUrl.AddCall(time.Now())
+		io.WriteString(w, shortUrl.GetLongUrl())
+		return
+	}
+
+	io.WriteString(w, shortUrl.GetSummary())
 }
 
-type reqData struct {
+type createData struct {
 	Url string `json:"url"`
 	Expiry string `json:"expiry"`
 }
@@ -41,17 +53,17 @@ func (m *defaultUrlManager) CreateUrlHandleFunc(w http.ResponseWriter, r *http.R
 		io.WriteString(w, err.Error())
 		return
 	}
-	var reqData reqData
-	json.Unmarshal(body, &reqData)
+	var createData createData
+	json.Unmarshal(body, &createData)
 	fmt.Println("req data")
-	fmt.Println(reqData)
-	expiry, err := time.ParseDuration(reqData.Expiry)
+	fmt.Println(createData)
+	expiry, err := time.ParseDuration(createData.Expiry)
 	if err != nil {
 		io.WriteString(w, err.Error())
 		return
 	}
 
-	shortUrl, err := m.createShortUrl(reqData.Url, expiry)
+	shortUrl, err := m.createShortUrl(createData.Url, expiry)
 	if err != nil {
 		io.WriteString(w, err.Error())
 	}
