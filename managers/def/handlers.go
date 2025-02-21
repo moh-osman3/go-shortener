@@ -22,11 +22,12 @@ func (m *defaultUrlManager) DeleteUrlHandleFunc(w http.ResponseWriter, r *http.R
 	var deleteData deleteData
 	json.Unmarshal(body, &deleteData)
 
-	err = m.deleteShortUrl(deleteData.Id)
+	err = m.deleteShortUrlFromCache(deleteData.Id)
 	if err != nil {
 		io.WriteString(w, err.Error())
 		return
 	}
+	err = m.deleteShortUrlFromDb(deleteData.Id)
 
 	io.WriteString(w, "Successfully deleted short url!")
 }
@@ -40,9 +41,9 @@ func (m *defaultUrlManager) GetUrlHandleFunc(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	shortUrl, ok := m.db[paths[0]]
+	shortUrl, err := m.getShortUrlFromStore(paths[0])
 	
-	if !ok || shortUrl == nil {
+	if err != nil || shortUrl == nil {
 		io.WriteString(w, "Short url does not exist")
 		return
 	}
