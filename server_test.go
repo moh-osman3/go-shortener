@@ -12,11 +12,21 @@ import (
 
 type mockUrlManager struct{}
 
-func (m *mockUrlManager) CreateUrlHandleFunc(w http.ResponseWriter, r *http.Request) {}
-func (m *mockUrlManager) DeleteUrlHandleFunc(w http.ResponseWriter, r *http.Request) {}
-func (m *mockUrlManager) GetUrlHandleFunc(w http.ResponseWriter, r *http.Request)    {}
-func (m *mockUrlManager) Start(ctx context.Context) error                            { return nil }
-func (m *mockUrlManager) End()                                                       {}
+func (m *mockUrlManager) CreateUrlHandleFunc(w http.ResponseWriter, r *http.Request) {
+	return
+}
+func (m *mockUrlManager) DeleteUrlHandleFunc(w http.ResponseWriter, r *http.Request) {
+	return
+}
+func (m *mockUrlManager) GetUrlHandleFunc(w http.ResponseWriter, r *http.Request) {
+	return
+}
+func (m *mockUrlManager) Start(ctx context.Context, cacheInterval time.Duration, dbInterval time.Duration) error {
+	return nil
+}
+func (m *mockUrlManager) End() {
+	return
+}
 
 func TestBasicServer(t *testing.T) {
 	server := NewServer(&mockUrlManager{}, zap.NewNop(), "3131")

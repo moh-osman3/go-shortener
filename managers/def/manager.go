@@ -30,6 +30,7 @@ type defaultUrlManager struct {
 	leveldb DB
 	logger  *zap.Logger
 	lock    sync.RWMutex
+	shutdownCh chan struct{}
 }
 
 func NewDefaultUrlManager(logger *zap.Logger, levelDb DB) managers.UrlManager {
@@ -37,6 +38,7 @@ func NewDefaultUrlManager(logger *zap.Logger, levelDb DB) managers.UrlManager {
 		cache:   make(map[string]urls.ShortUrl),
 		logger:  logger,
 		leveldb: levelDb,
+		shutdownCh: make(chan struct{}, 1),
 	}
 }
 
@@ -89,24 +91,37 @@ func (m *defaultUrlManager) scanAndDeleteCache() {
 	}
 }
 
-func (m *defaultUrlManager) Start(ctx context.Context) error {
+func (m *defaultUrlManager) Start(ctx context.Context, cacheInterval time.Duration, dbInterval time.Duration) error {
 	m.logger.Info("manager.go: starting url manager")
+
+	// todo: make interval configurable
+	cacheTicker := time.NewTicker(cacheInterval)
+
+	// in case db has a lot more keys than db, clean up expired keys less frequently
+	dbTicker := time.NewTicker(dbInterval)
 
 	// two separate monitors for cache and db.
 	go func() {
+		defer cacheTicker.Stop()
 		for {
-			// todo: make this configurable
-			time.Sleep(10 * time.Second)
-			m.scanAndDeleteCache()
+			select{
+			case <-m.shutdownCh:
+				return
+			case <-cacheTicker.C:
+				m.scanAndDeleteCache()
+			}
 		}
 	}()
 
 	go func() {
+		defer dbTicker.Stop()
 		for {
-			// todo: make this configurable
-			// in case db has a lot more keys than db, clean up expired keys less frequently
-			time.Sleep(300 * time.Second)
-			m.scanAndDeleteDb()
+			select{
+			case <-m.shutdownCh:
+				return
+			case <-dbTicker.C:
+				m.scanAndDeleteDb()
+			}
 		}
 	}()
 	return nil
@@ -114,6 +129,7 @@ func (m *defaultUrlManager) Start(ctx context.Context) error {
 
 func (m *defaultUrlManager) End() {
 	m.logger.Info("manager.go: shutting down url manager")
+	close(m.shutdownCh)
 }
 
 func (m *defaultUrlManager) deleteShortUrlFromCache(key string) error {
@@ -180,7 +196,7 @@ func (m *defaultUrlManager) createShortUrl(longUrl string, expiry time.Duration)
 	}
 
 	if shortUrl == nil {
-		m.logger.Error("manager db cache not initialized")
+		m.logger.Error("unable to generate unique short url")
 		return nil, errors.New("manager.go: unable to generate new short url")
 	}
 
