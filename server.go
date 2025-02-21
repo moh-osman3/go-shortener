@@ -1,6 +1,6 @@
 package shortener
 
-import(
+import (
 	"fmt"
 	"net/http"
 
@@ -11,15 +11,15 @@ import(
 
 type server struct {
 	manager managers.UrlManager
-	logger *zap.Logger
-	server http.Server
+	logger  *zap.Logger
+	server  http.Server
 }
 
 func NewServer(m managers.UrlManager, logger *zap.Logger, port string) *server {
 	return &server{
 		manager: m,
-		logger: logger,
-		server: http.Server{Addr: fmt.Sprintf(":%s", port)},
+		logger:  logger,
+		server:  http.Server{Addr: fmt.Sprintf(":%s", port)},
 	}
 }
 

@@ -11,17 +11,17 @@ import (
 
 type Counter struct {
 	NumCalls map[Date]int64
-	lock sync.RWMutex
+	lock     sync.RWMutex
 }
 
 type Date struct {
-	Year int
+	Year  int
 	Month int
-	Day int
+	Day   int
 }
 
 func (d Date) MarshalText() ([]byte, error) {
-    return []byte(fmt.Sprintf("%d-%d-%d", d.Year, d.Month, d.Day)), nil
+	return []byte(fmt.Sprintf("%d-%d-%d", d.Year, d.Month, d.Day)), nil
 }
 
 func (d *Date) UnmarshalText(text []byte) error {
@@ -42,14 +42,14 @@ func (d *Date) UnmarshalText(text []byte) error {
 	d.Year = year
 	d.Month = month
 	d.Day = day
-    return nil
+	return nil
 }
 
-func NewDate(year,month,day int) Date {
+func NewDate(year, month, day int) Date {
 	return Date{
-		Year: year,
+		Year:  year,
 		Month: month,
-		Day: day,
+		Day:   day,
 	}
 }
 
@@ -97,7 +97,7 @@ func (c *Counter) GetSummary() string {
 		// this is a crude measurement of the past week
 		keyTimeStamp := time.Date(key.Year, time.Month(key.Month), key.Day, 0, 0, 0, 0, time.Local)
 
-		if keyTimeStamp.Before(nowTime) && nowTime.Add(-7 * 24 * time.Hour).Before(keyTimeStamp) {
+		if keyTimeStamp.Before(nowTime) && nowTime.Add(-7*24*time.Hour).Before(keyTimeStamp) {
 			weekTotal += val
 		}
 	}

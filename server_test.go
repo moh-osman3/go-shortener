@@ -10,15 +10,16 @@ import (
 	"go.uber.org/zap"
 )
 
-type mockUrlManager struct {}
+type mockUrlManager struct{}
+
 func (m *mockUrlManager) CreateUrlHandleFunc(w http.ResponseWriter, r *http.Request) {}
 func (m *mockUrlManager) DeleteUrlHandleFunc(w http.ResponseWriter, r *http.Request) {}
-func (m *mockUrlManager) GetUrlHandleFunc(w http.ResponseWriter, r *http.Request) {}
-func (m *mockUrlManager) Start(ctx context.Context) error {return nil}
-func (m *mockUrlManager) End() {}
+func (m *mockUrlManager) GetUrlHandleFunc(w http.ResponseWriter, r *http.Request)    {}
+func (m *mockUrlManager) Start(ctx context.Context) error                            { return nil }
+func (m *mockUrlManager) End()                                                       {}
 
 func TestBasicServer(t *testing.T) {
-	server := NewServer(&mockUrlManager{}, zap.NewNop(), "3131") 
+	server := NewServer(&mockUrlManager{}, zap.NewNop(), "3131")
 	assert.NotNil(t, server)
 
 	errs := make(chan error, 1)
@@ -26,7 +27,7 @@ func TestBasicServer(t *testing.T) {
 		errs <- server.Serve()
 	}()
 
-	time.Sleep(5*time.Second)
+	time.Sleep(5 * time.Second)
 	err := server.Shutdown()
 	assert.NoError(t, err)
 	err = <-errs
