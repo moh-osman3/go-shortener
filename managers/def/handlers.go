@@ -15,12 +15,12 @@ type deleteData struct {
 
 func (m *defaultUrlManager) DeleteUrlHandleFunc(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
-		io.WriteString(w, "Invalid method: expected DELETE request")
+		http.Error(w, "Invalid method: expected DELETE request", http.StatusMethodNotAllowed)
 		return
 	}
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		io.WriteString(w, err.Error())
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 	var deleteData deleteData
@@ -28,7 +28,7 @@ func (m *defaultUrlManager) DeleteUrlHandleFunc(w http.ResponseWriter, r *http.R
 
 	err = m.deleteKeyFromCacheAndDb(deleteData.Id)
 	if err != nil {
-		io.WriteString(w, err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -37,22 +37,21 @@ func (m *defaultUrlManager) DeleteUrlHandleFunc(w http.ResponseWriter, r *http.R
 
 func (m *defaultUrlManager) GetUrlHandleFunc(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		io.WriteString(w, "Invalid method: expected GET request")
+		http.Error(w, "Invalid method: expected GET request", http.StatusMethodNotAllowed)
 		return
 	}
 
-	path := r.URL.Path[1:]
+	path := strings.TrimPrefix(r.URL.Path, "/")
 	paths := strings.Split(path, "/")
-	if len(paths) == 0 || paths[0] == "" {
-		//log
-		io.WriteString(w, "Not a valid short url")
+	if len(paths) == 0 || paths[0] == ""  || len(paths) > 2 {
+		http.Error(w, "Invalid request URL", http.StatusBadRequest)
 		return
 	}
 
 	shortUrl, err := m.getShortUrlFromStore(paths[0])
 
 	if err != nil || shortUrl == nil {
-		io.WriteString(w, "Short url does not exist")
+		http.Error(w, "short url does not exist", http.StatusInternalServerError)
 		return
 	}
 
@@ -68,7 +67,7 @@ func (m *defaultUrlManager) GetUrlHandleFunc(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	io.WriteString(w, "Invalid GET endpoint")
+	http.Error(w, "Invalid request URL", http.StatusBadRequest)
 }
 
 type createData struct {
@@ -78,25 +77,25 @@ type createData struct {
 
 func (m *defaultUrlManager) CreateUrlHandleFunc(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		io.WriteString(w, "Invalid method: expected POST request")
+		http.Error(w, "Invalid method: expected POST request", http.StatusMethodNotAllowed)
 		return
 	}
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		io.WriteString(w, err.Error())
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 	var createData createData
 	json.Unmarshal(body, &createData)
 	expiry, err := time.ParseDuration(createData.Expiry)
 	if err != nil {
-		io.WriteString(w, err.Error())
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	shortUrl, err := m.createShortUrl(createData.Url, expiry)
 	if err != nil {
-		io.WriteString(w, err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	io.WriteString(w, fmt.Sprintf("Successfully created short url: http://localhost:3030/%s", shortUrl.GetId()))
