@@ -1,6 +1,7 @@
 package def
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -34,13 +35,23 @@ func (mdb *mockDB) Get(key []byte, ro *opt.ReadOptions) ([]byte, error) {
 }
 
 func (mdb *mockDB) Put(key, value []byte, wo *opt.WriteOptions) error {
+	if string(key) == "error" {
+		return errors.New("error during Put operation")
+	}
 	mdb.db[string(key)] = value
 	return nil
 }
+
 func (mdb *mockDB) Delete(key []byte, wo *opt.WriteOptions) error {
+	_, ok := mdb.db[string(key)]
+	if !ok {
+		return errors.New("deleting key that does not exist")
+	}
+
 	delete(mdb.db, string(key))
 	return nil
 }
+
 func (mdb *mockDB) NewIterator(slice *util.Range, ro *opt.ReadOptions) iterator.Iterator {
 	return iterator.NewEmptyIterator(nil)
 }
@@ -156,4 +167,60 @@ func TestAddCallToShortUrl(t *testing.T) {
 	assert.NotEqual(t, startSummary, surl.GetSummary())
 
 	assert.Equal(t, cacheSurl.GetSummary(), surl.GetSummary())
+}
+
+func TestStartBackgroundCleanup(t *testing.T) {
+	defManager := &defaultUrlManager{
+		cache:   make(map[string]urls.ShortUrl),
+		logger:  zap.NewNop(),
+		leveldb: NewMockDB(),
+		shutdownCh: make(chan struct{}, 1),
+	}
+
+	testLongUrl := "www.testlongurl.com"
+	expiry1 := 5 * time.Minute
+	createdSurl, err := defManager.createShortUrl(testLongUrl, expiry1)
+	assert.NoError(t, err)
+	assert.NotNil(t, createdSurl)
+	assert.Equal(t, testLongUrl, createdSurl.GetLongUrl())
+
+	expiredUrl := "www.expiredurl.com"
+	expiry2 := 1 * time.Second
+	expiredSurl, err := defManager.createShortUrl(expiredUrl, expiry2)
+	assert.NoError(t, err)
+	assert.NotNil(t, expiredSurl)
+	assert.Equal(t, expiredUrl, expiredSurl.GetLongUrl())
+
+	defManager.Start(context.Background(), 2*time.Second, 3*time.Second)
+
+	time.Sleep(3*time.Second)
+
+	defManager.End()
+
+	// confirm expiredSurl is deleted from cache and db
+	val, ok := defManager.cache[expiredSurl.GetId()]
+	assert.False(t, ok)
+	assert.Nil(t, val)
+
+	_, err = defManager.leveldb.Get([]byte(expiredSurl.GetId()), nil)
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, "value not found")
+
+	// confirm createdSurl still exists in cache and db
+	val, ok = defManager.cache[createdSurl.GetId()]
+	assert.True(t, ok)
+	assert.NotNil(t, val)
+	assert.Equal(t, testLongUrl, createdSurl.GetLongUrl())
+
+	valStr, err := defManager.leveldb.Get([]byte(createdSurl.GetId()), nil)
+	assert.NoError(t, err)
+	surl := urls.NewDefaultShortUrl("", "", time.Second, time.Now())
+	surl.Unmarshal([]byte(valStr))
+	assert.Equal(t, createdSurl.GetLongUrl(), surl.GetLongUrl())
+	assert.Equal(t, createdSurl.GetExpiry().Unix(), surl.GetExpiry().Unix())
+	assert.Equal(t, createdSurl.GetSummary(), surl.GetSummary())
+
+	// confirm shutdownch is closed
+	_, ok = <-defManager.shutdownCh
+	assert.False(t, ok)
 }
