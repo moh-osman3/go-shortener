@@ -24,30 +24,34 @@ func (m *defaultUrlManager) scanAndDelete() {
 	for key, val := range m.db {
 		fmt.Println(time.Now().After(val.GetExpiry()))
 		fmt.Println(val.GetExpiry())
-		if time.Now().After(val.GetExpiry()) {
+		// only delete shorturl if its not zero (no expiration)
+		if !val.GetExpiry().IsZero() && time.Now().After(val.GetExpiry()) {
 			m.deleteShortUrl(key)
 		}
 	}
 }
 
 func (m *defaultUrlManager) Start(ctx context.Context) error {
-
 	go func() {
 		for {
 			m.scanAndDelete()
 			// todo: make this configurable
 			time.Sleep(10*time.Second)
 		}
-
 	}()
 	return nil
 }
 
 func (m *defaultUrlManager) End() {}
-func (m *defaultUrlManager) deleteShortUrl(key string) {
+func (m *defaultUrlManager) deleteShortUrl(key string) error {
 	fmt.Println("DELETING FROM DB")
 	fmt.Println(m.db[key])
+	if _, ok := m.db[key]; !ok {
+		//log that key doesn't exist
+		return errors.New("deleting shorturl that does not exist")
+	}
 	delete(m.db, key)
+	return nil
 }
 
 func (m *defaultUrlManager) generateShortUrl(longUrl string, expiry time.Duration) urls.ShortUrl {
