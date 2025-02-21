@@ -43,7 +43,7 @@ func (m *defaultUrlManager) GetUrlHandleFunc(w http.ResponseWriter, r *http.Requ
 
 	path := strings.TrimPrefix(r.URL.Path, "/")
 	paths := strings.Split(path, "/")
-	if len(paths) == 0 || paths[0] == ""  || len(paths) > 2 {
+	if len(paths) == 0 || paths[0] == "" || len(paths) > 2 {
 		http.Error(w, "Invalid request URL", http.StatusBadRequest)
 		return
 	}

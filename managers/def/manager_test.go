@@ -171,9 +171,9 @@ func TestAddCallToShortUrl(t *testing.T) {
 
 func TestStartBackgroundCleanup(t *testing.T) {
 	defManager := &defaultUrlManager{
-		cache:   make(map[string]urls.ShortUrl),
-		logger:  zap.NewNop(),
-		leveldb: NewMockDB(),
+		cache:      make(map[string]urls.ShortUrl),
+		logger:     zap.NewNop(),
+		leveldb:    NewMockDB(),
 		shutdownCh: make(chan struct{}, 1),
 	}
 
@@ -193,7 +193,7 @@ func TestStartBackgroundCleanup(t *testing.T) {
 
 	defManager.Start(context.Background(), 2*time.Second, 3*time.Second)
 
-	time.Sleep(3*time.Second)
+	time.Sleep(3 * time.Second)
 
 	defManager.End()
 
