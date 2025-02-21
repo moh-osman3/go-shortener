@@ -1,6 +1,7 @@
 package shortener
 
 import(
+	"fmt"
 	"net/http"
 
 	"go.uber.org/zap"
@@ -11,12 +12,14 @@ import(
 type server struct {
 	manager managers.UrlManager
 	logger *zap.Logger
+	server http.Server
 }
 
-func NewServer(m managers.UrlManager, logger *zap.Logger) *server {
+func NewServer(m managers.UrlManager, logger *zap.Logger, port string) *server {
 	return &server{
 		manager: m,
 		logger: logger,
+		server: http.Server{Addr: fmt.Sprintf(":%s", port)},
 	}
 }
 
@@ -28,7 +31,12 @@ func (s *server) AddDefaultRoutes() {
 
 func (s *server) Serve() error {
 	s.logger.Info("Starting server on port 3030")
-	err := http.ListenAndServe(":3030", nil)
+
+	err := s.server.ListenAndServe()
 	s.logger.Info("Shutting down server")
 	return err
+}
+
+func (s *server) Shutdown() error {
+	return s.server.Close()
 }

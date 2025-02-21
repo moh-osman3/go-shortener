@@ -9,8 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/redis/go-redis/v9"
-	"go.uber.org/multierr"
+	"github.com/syndtr/goleveldb/leveldb"
 	"go.uber.org/zap"
 
 	"github.com/moh-osman3/shortener/urls"
@@ -19,52 +18,54 @@ import (
 
 type defaultUrlManager struct {
 	cache map[string]urls.ShortUrl
-	redisDb *redis.Client
+	leveldb *leveldb.DB
 	logger *zap.Logger
 	lock sync.RWMutex
 }
 
-func NewDefaultUrlManager(logger *zap.Logger, redisDb *redis.Client) managers.UrlManager {
+func NewDefaultUrlManager(logger *zap.Logger, levelDb *leveldb.DB) managers.UrlManager {
 	return &defaultUrlManager{
 		cache: make(map[string]urls.ShortUrl),
 		logger: logger,
-		redisDb: redisDb,
+		leveldb: levelDb,
 	}
 }
 
 func (m *defaultUrlManager) deleteKeyFromCacheAndDb(key string) error {
 	m.lock.Lock()
-	defer m.lock.Lock()
+	defer m.lock.Unlock()
 
-	var err, errors error
-	err = m.deleteShortUrlFromDb(key)
-	errors = multierr.Append(errors, err)
+	err1 := m.deleteShortUrlFromDb(key)
+	err2 := m.deleteShortUrlFromCache(key)
 
-	err = m.deleteShortUrlFromCache(key)
-	errors = multierr.Append(errors, err)
-	return errors
+	// only return error if key does not exist in both cache and db
+	if err1 != nil && err2 != nil {
+		return errors.New("manager.go: deleting shorturl from cache that does not exist")
+	}
+	return nil
 }
 
 func (m *defaultUrlManager) scanAndDeleteDb() {
-	var cursor uint64
-	ctx := context.Background()
 	m.lock.RLock()
-	iter := m.redisDb.Scan(ctx, cursor, "*", 0).Iterator()
-	m.lock.RUnlock()
+	defer m.lock.RUnlock()
+	iter := m.leveldb.NewIterator(nil, nil)
+	defer iter.Release()
 
-	if iter.Err() != nil {
-		m.logger.Error("error retrieving redis db keys")
-		return
-	}
-	for iter.Next(ctx) {
-		shortUrl := urls.NewDefaultShortUrl("", "", time.Second)
-		shortUrl.Unmarshal([]byte(iter.Val()))
+	for iter.Next() {
+		shortUrl := urls.NewDefaultShortUrl("", "", time.Second, time.Now())
+		shortUrl.Unmarshal([]byte(iter.Value()))
+
 		if !shortUrl.GetExpiry().IsZero() && time.Now().After(shortUrl.GetExpiry()) {
 			err := m.deleteKeyFromCacheAndDb(shortUrl.GetId())
 			if err != nil {
 				m.logger.Debug("error deleting key", zap.Error(err))
 			}
 		}
+	}
+
+	if iter.Error() != nil {
+		m.logger.Error("error retrieving redis db keys")
+		return
 	}
 }
 
@@ -110,7 +111,7 @@ func (m *defaultUrlManager) deleteShortUrlFromCache(key string) error {
 	m.logger.Debug("manager.go: deleting short url from cache")
 	if _, ok := m.cache[key]; !ok {
 		m.logger.Debug("manager.go: deleting shorturl from cache that does not exist")
-		return errors.New("deleting shorturl that does not exist")
+		return errors.New("manager.go: deleting shorturl from cache that does not exist")
 	}
 	delete(m.cache, key)
 	return nil
@@ -118,11 +119,11 @@ func (m *defaultUrlManager) deleteShortUrlFromCache(key string) error {
 
 func (m *defaultUrlManager) deleteShortUrlFromDb(key string) error {
 	m.logger.Debug("manager.go: deleting short url from db")
-	res := m.redisDb.Del(context.Background(), key)
+	err := m.leveldb.Delete([]byte(key), nil)
 
-	if res.Err() != nil {
+	if err != nil {
 		m.logger.Debug("manager.go: deleting shorturl from db that does not exist")
-		return res.Err() 
+		return err
 	}
 
 	return nil
@@ -142,22 +143,21 @@ func (m *defaultUrlManager) generateShortUrl(longUrl string, expiry time.Duratio
 	}
 
 	// didn't find in cache so check db
-	val, err := m.redisDb.Get(context.Background(), hashStr).Result()
+	val, err := m.leveldb.Get([]byte(hashStr), nil)
 	shortUrl = nil 
 	if (err == nil) {
-		shortUrl = urls.NewDefaultShortUrl("", "", time.Second)
+		shortUrl = urls.NewDefaultShortUrl("", "", time.Second, time.Now())
 		shortUrl.Unmarshal([]byte(val))
 	}
 
 	if shortUrl != nil && shortUrl.GetLongUrl() != longUrl {
 		// hash collision return nil to retry to get a unique hash.
-		fmt.Println("noooo")
 		return nil
 	} else if shortUrl != nil {
 		return shortUrl
 	}
 
-	return urls.NewDefaultShortUrl(hashStr, longUrl, expiry)
+	return urls.NewDefaultShortUrl(hashStr, longUrl, expiry, time.Now())
 }
 
 func (m *defaultUrlManager) createShortUrl(longUrl string, expiry time.Duration) (urls.ShortUrl, error) {
@@ -185,9 +185,9 @@ func (m *defaultUrlManager) createShortUrl(longUrl string, expiry time.Duration)
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	m.cache[shortUrl.GetId()] = shortUrl 
-	m.redisDb.Set(context.Background(), shortUrl.GetId(), shortUrlStr, 0)
+	err = m.leveldb.Put([]byte(shortUrl.GetId()), shortUrlStr, nil)
 
-	return shortUrl, nil
+	return shortUrl, err
 }
 
 func (m *defaultUrlManager) getShortUrlFromStore(key string) (urls.ShortUrl, error) {
@@ -199,10 +199,10 @@ func (m *defaultUrlManager) getShortUrlFromStore(key string) (urls.ShortUrl, err
 		return shortUrl, nil
 	}
 
-	val, err := m.redisDb.Get(context.Background(), key).Result()
+	val, err := m.leveldb.Get([]byte(key), nil)
 	shortUrl = nil 
 	if (err == nil) {
-		shortUrl = urls.NewDefaultShortUrl("", "", time.Second)
+		shortUrl = urls.NewDefaultShortUrl("", "", time.Second, time.Now())
 		shortUrl.Unmarshal([]byte(val))
 	}
 
