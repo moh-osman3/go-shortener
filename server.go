@@ -19,6 +19,7 @@ func NewServer(m managers.UrlManager) *server {
 
 func (s *server) AddDefaultRoutes() {
 	http.HandleFunc("/create", s.manager.CreateUrlHandleFunc)
+	http.HandleFunc("/delete", s.manager.DeleteUrlHandleFunc)
 	http.HandleFunc("/", s.manager.GetUrlHandleFunc)
 }
 
