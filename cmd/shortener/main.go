@@ -20,7 +20,7 @@ func main() {
 	// create and start a urlManager
 	urlManager := def.NewDefaultUrlManager(logger, client)
 	ctx := context.Background()
-	err = urlManager.Start(ctx, 10 * time.Second, 300 * time.Second)
+	err = urlManager.Start(ctx, 10*time.Second, 300*time.Second)
 	if err != nil {
 		logger.Error("error starting url manager", zap.Error(err))
 		return
