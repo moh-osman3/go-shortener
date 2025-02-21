@@ -5,25 +5,34 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
-	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
+	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/util"
 	"go.uber.org/zap"
 
 	"github.com/moh-osman3/shortener/urls"
 	"github.com/moh-osman3/shortener/managers"
 )
 
+// this helps with testing with a mock db
+type DB interface {
+	Get(key []byte, ro *opt.ReadOptions) ([]byte, error)
+	Put(key, value []byte,  wo *opt.WriteOptions) error
+	Delete(key []byte, wo *opt.WriteOptions) error
+	NewIterator(slice *util.Range, ro *opt.ReadOptions) iterator.Iterator
+}
+
 type defaultUrlManager struct {
 	cache map[string]urls.ShortUrl
-	leveldb *leveldb.DB
+	leveldb DB
 	logger *zap.Logger
 	lock sync.RWMutex
 }
 
-func NewDefaultUrlManager(logger *zap.Logger, levelDb *leveldb.DB) managers.UrlManager {
+func NewDefaultUrlManager(logger *zap.Logger, levelDb DB) managers.UrlManager {
 	return &defaultUrlManager{
 		cache: make(map[string]urls.ShortUrl),
 		logger: logger,
@@ -162,18 +171,22 @@ func (m *defaultUrlManager) generateShortUrl(longUrl string, expiry time.Duratio
 
 func (m *defaultUrlManager) createShortUrl(longUrl string, expiry time.Duration) (urls.ShortUrl, error) {
 	var shortUrl urls.ShortUrl
-	// in case of hash collisions retry until you get a unique shortUrl.
-	for {
-		fmt.Println("loop")
+	// in case of hash collisions retry 10 times until you get a unique shortUrl.
+	for i := 0; i < 10; i++ {
 		shortUrl = m.generateShortUrl(longUrl, expiry)
 		if shortUrl != nil {
 			break
 		}
 	}
 
+	if shortUrl == nil {
+		m.logger.Error("manager db cache not initialized")
+		return nil, errors.New("manager.go: unable to generate new short url")
+	}
+
 	if m.cache == nil {
 		m.logger.Error("manager db cache not initialized")
-		return nil, errors.New("manager db cache not initialized")
+		return nil, errors.New("manager.go: manager db cache not initialized")
 	}
 
 	m.logger.Debug("manager.go: successfully created short url")
