@@ -9,69 +9,67 @@ import (
 	"time"
 )
 
+const secondsInDay = 86400
+
+type Count struct {
+	count    int64
+	lastUnix int64
+}
+
 type Counter struct {
-	NumCalls map[Date]int64
-	lock     sync.RWMutex
+	WeekBuffer []Count
+	TotalCalls int64
+	lock       sync.RWMutex
 }
 
-type Date struct {
-	Year  int
-	Month int
-	Day   int
+func (c Count) MarshalText() ([]byte, error) {
+	return []byte(fmt.Sprintf("%d:%d", c.count, c.lastUnix)), nil
 }
 
-func (d Date) MarshalText() ([]byte, error) {
-	return []byte(fmt.Sprintf("%d-%d-%d", d.Year, d.Month, d.Day)), nil
-}
+func (c *Count) UnmarshalText(text []byte) error {
+	parts := strings.Split(string(text), ":")
 
-func (d *Date) UnmarshalText(text []byte) error {
-	parts := strings.Split(string(text), "-")
-
-	if len(parts) != 3 {
-		return errors.New("found date with incorrect format")
+	if len(parts) != 2 {
+		return errors.New("found text with incorrect format")
 	}
 
-	year, yerr := strconv.Atoi(parts[0])
-	month, merr := strconv.Atoi(parts[1])
-	day, derr := strconv.Atoi(parts[2])
+	count, cerr := strconv.ParseInt(parts[0], 10, 64)
+	lastUnix, lerr := strconv.ParseInt(parts[1], 10, 64)
 
-	if yerr != nil || merr != nil || derr != nil {
+	if cerr != nil || lerr != nil {
 		return errors.New("error converting string to integers")
 	}
-
-	d.Year = year
-	d.Month = month
-	d.Day = day
+	c.count = count
+	c.lastUnix = lastUnix
 	return nil
-}
-
-func NewDate(year, month, day int) Date {
-	return Date{
-		Year:  year,
-		Month: month,
-		Day:   day,
-	}
 }
 
 func NewCounter() *Counter {
 	return &Counter{
-		NumCalls: make(map[Date]int64),
+		TotalCalls: 0,
+		WeekBuffer: make([]Count, 7),
 	}
 }
 
 func (c *Counter) AddCall(timestamp time.Time) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	y, m, d := timestamp.Date()
+	c.TotalCalls += 1
 
-	key := NewDate(int(y), int(m), int(d))
+	// calculate index in ring buffer by days_since_unix_epoch % 7
+	seconds := timestamp.Unix()
+	days := seconds / secondsInDay
 
-	if _, ok := c.NumCalls[key]; !ok {
-		// initialize key if it doesn't exist
-		c.NumCalls[key] = 0
+	key := days % 7
+
+	isStale := (seconds-secondsInDay > c.WeekBuffer[key].lastUnix)
+
+	if isStale {
+		c.WeekBuffer[key].count = 0
 	}
 
-	c.NumCalls[key] += 1
+	c.WeekBuffer[key].count += 1
+	c.WeekBuffer[key].lastUnix = seconds
 }
 
 // Todo: In the future this function should return each summary type separately
@@ -82,23 +80,19 @@ func (c *Counter) GetSummary() string {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	nowTime := time.Now()
-	nowYear, nowMonth, nowDay := nowTime.Date()
+	nowSeconds := nowTime.Unix()
 	dayTotal := int64(0)
 	weekTotal := int64(0)
-	allTotal := int64(0)
+	allTotal := c.TotalCalls
 
-	for key, val := range c.NumCalls {
-		allTotal += val
-
-		if key.Year == int(nowYear) && key.Month == int(nowMonth) && key.Day == int(nowDay) {
-			dayTotal += val
+	for _, count := range c.WeekBuffer {
+		if nowSeconds-secondsInDay < count.lastUnix {
+			dayTotal = count.count
 		}
 
-		// this is a crude measurement of the past week
-		keyTimeStamp := time.Date(key.Year, time.Month(key.Month), key.Day, 0, 0, 0, 0, time.Local)
+		if nowSeconds-7*secondsInDay < count.lastUnix {
+			weekTotal += count.count
 
-		if keyTimeStamp.Before(nowTime) && nowTime.Add(-7*24*time.Hour).Before(keyTimeStamp) {
-			weekTotal += val
 		}
 	}
 
