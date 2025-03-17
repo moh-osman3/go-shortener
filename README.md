@@ -38,7 +38,7 @@ The endpoint is http://localhost:3030/<short-url-hash>
 
 e.g. to redirect to google.com using the shorturl
 
-`curl http://localhost:3030/ChN7N1zDiBpw4YbOIXLI0Q==`
+`curl http://localhost:3030/MA==`
 
 # Getting a summary of your short url
 
@@ -47,7 +47,7 @@ The server supports instrumentation that records the number of times the short u
 The endpoint is http://localhost:3030/<short-url-hash>/summary
 
 So to get a summary of your google.com shorturl you can write
-`curl http://localhost:3030/ChN7N1zDiBpw4YbOIXLI0Q==/summary`
+`curl http://localhost:3030/MA==/summary`
 
 ```
 Summary of shorturl:
@@ -66,7 +66,7 @@ To delete a short url the server expects a DELETE request that accepts data in t
 
 Putting it all together, the following request will delete the short url for www.google.com
 
-`curl -X DELETE -d '{"id":"ChN7N1zDiBpw4YbOIXLI0Q=="}' http://localhost:3030/delete`
+`curl -X DELETE -d '{"id":"MA=="}' http://localhost:3030/delete`
 
 ## Testing
 
@@ -91,7 +91,7 @@ Features:
 
 # URL generation
 
-Short Url generation uses MD5 hash of the long url. A long url should map to the same short url regardless of the client to reduce overhead of storage in the server. The only time a long url should map to multiple short urls is if there is a hash collision. If a hash collision is detected we append a pseudo-random integer to the end of the long url and retry up to 10 times.
+Short Url generation uses sequential ID's and apply a one-to-one feistel transformation to get a unique obfuscated encoding. Then we apply a url safe encoding to the transformation for our short url. A long url should only map to one shortUrl for the lifetime of that shortUrl. If the shortUrl is deleted, then the next time the long url is submitted, it will generate a new unique shortUrl.
 
 # Storage
 
