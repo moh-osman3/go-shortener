@@ -2,7 +2,7 @@ package def
 
 import (
 	"context"
-	"crypto/md5"
+	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"math/rand"
@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cyrildever/feistel"
+	"github.com/cyrildever/feistel/common/utils/hash"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -18,6 +20,7 @@ import (
 	"github.com/moh-osman3/shortener/managers"
 	"github.com/moh-osman3/shortener/urls"
 )
+const defaultObfuscationKeyLength = 32
 
 // this helps with testing with a mock db
 type DB interface {
@@ -33,6 +36,8 @@ type defaultUrlManager struct {
 	logger     *zap.Logger
 	lock       sync.RWMutex
 	shutdownCh chan struct{}
+	numUrls    int
+	cipher     *feistel.FPECipher
 }
 
 func NewDefaultUrlManager(logger *zap.Logger, levelDb DB) managers.UrlManager {
@@ -41,6 +46,8 @@ func NewDefaultUrlManager(logger *zap.Logger, levelDb DB) managers.UrlManager {
 		logger:     logger,
 		leveldb:    levelDb,
 		shutdownCh: make(chan struct{}, 1),
+		numUrls:    0,
+		cipher:     feistel.NewFPECipher(hash.SHA_256, newKey(defaultObfuscationKeyLength), 128),
 	}
 }
 
@@ -156,9 +163,20 @@ func (m *defaultUrlManager) deleteShortUrlFromDb(key string) error {
 	return nil
 }
 
+func newKey(keyLength int) string {
+	buf := make([]byte, keyLength)
+	rand.Reader.Read(buf)
+	return string(buf)
+}
+
 func (m *defaultUrlManager) generateShortUrl(longUrl string, expiry time.Duration) urls.ShortUrl {
-	hash := md5.Sum([]byte(longUrl))
-	hashStr := base64.URLEncoding.EncodeToString(hash[:])
+	seqId := strconv.Itoa(m.numUrls)
+	obfuscated, err := m.cipher.EncryptString(seqId)
+	if err != nil {
+		m.logger.Error("Could not encrypt id using feistel cipher")
+		return nil
+	}
+	hashStr := base64.URLEncoding.EncodeToString(obfuscated.Bytes())
 	shortUrl, ok := m.cache[hashStr]
 
 	if ok {
@@ -200,6 +218,7 @@ func (m *defaultUrlManager) createShortUrl(longUrl string, expiry time.Duration)
 		if shortUrl != nil {
 			break
 		}
+		m.numUrls += 1
 	}
 
 	if shortUrl == nil {
