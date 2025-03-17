@@ -14,6 +14,7 @@ type deleteData struct {
 }
 
 func (m *defaultUrlManager) DeleteUrlHandleFunc(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
 	if r.Method != http.MethodDelete {
 		http.Error(w, "Invalid method: expected DELETE request", http.StatusMethodNotAllowed)
 		return
@@ -36,6 +37,7 @@ func (m *defaultUrlManager) DeleteUrlHandleFunc(w http.ResponseWriter, r *http.R
 }
 
 func (m *defaultUrlManager) GetUrlHandleFunc(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
 	if r.Method != http.MethodGet {
 		http.Error(w, "Invalid method: expected GET request", http.StatusMethodNotAllowed)
 		return
@@ -76,6 +78,7 @@ type createData struct {
 }
 
 func (m *defaultUrlManager) CreateUrlHandleFunc(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid method: expected POST request", http.StatusMethodNotAllowed)
 		return

@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cyrildever/feistel"
+	"github.com/cyrildever/feistel/common/utils/hash"
 	"github.com/stretchr/testify/assert"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -61,6 +63,7 @@ func TestCreateAndGetUrl(t *testing.T) {
 		cache:   make(map[string]urls.ShortUrl),
 		logger:  zap.NewNop(),
 		leveldb: NewMockDB(),
+		cipher:  feistel.NewFPECipher(hash.SHA_256, "some-32-byte-long-key-to-be-safe", 128),
 	}
 
 	testLongUrl := "www.testlongurl.com"
@@ -99,6 +102,7 @@ func TestDeleteUrl(t *testing.T) {
 		cache:   make(map[string]urls.ShortUrl),
 		logger:  zap.NewNop(),
 		leveldb: NewMockDB(),
+		cipher:  feistel.NewFPECipher(hash.SHA_256, "some-32-byte-long-key-to-be-safe", 128),
 	}
 
 	testLongUrl := "www.testlongurl.com"
@@ -133,6 +137,7 @@ func TestAddCallToShortUrl(t *testing.T) {
 		cache:   make(map[string]urls.ShortUrl),
 		logger:  zap.NewNop(),
 		leveldb: NewMockDB(),
+		cipher:  feistel.NewFPECipher(hash.SHA_256, "some-32-byte-long-key-to-be-safe", 128),
 	}
 
 	testLongUrl := "www.testlongurl.com"
@@ -175,6 +180,7 @@ func TestStartBackgroundCleanup(t *testing.T) {
 		logger:     zap.NewNop(),
 		leveldb:    NewMockDB(),
 		shutdownCh: make(chan struct{}, 1),
+		cipher:     feistel.NewFPECipher(hash.SHA_256, "some-32-byte-long-key-to-be-safe", 128),
 	}
 
 	testLongUrl := "www.testlongurl.com"

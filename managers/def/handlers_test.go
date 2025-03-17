@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cyrildever/feistel"
+	"github.com/cyrildever/feistel/common/utils/hash"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -28,6 +30,7 @@ func TestDeleteUrlHandleFunc(t *testing.T) {
 		cache:   make(map[string]urls.ShortUrl),
 		logger:  zap.NewNop(),
 		leveldb: NewMockDB(),
+		cipher:  feistel.NewFPECipher(hash.SHA_256, "some-32-byte-long-key-to-be-safe", 128),
 	}
 	// test bad method
 	req, err := http.NewRequest(http.MethodGet, "/delete", nil)
@@ -77,6 +80,7 @@ func TestGetUrlHandleFunc(t *testing.T) {
 		cache:   make(map[string]urls.ShortUrl),
 		logger:  zap.NewNop(),
 		leveldb: NewMockDB(),
+		cipher:  feistel.NewFPECipher(hash.SHA_256, "some-32-byte-long-key-to-be-safe", 128),
 	}
 	// test bad method
 	req, err := http.NewRequest(http.MethodPost, "/", nil)
@@ -154,6 +158,7 @@ func TestCreateUrlHandleFunc(t *testing.T) {
 		cache:   make(map[string]urls.ShortUrl),
 		logger:  zap.NewNop(),
 		leveldb: NewMockDB(),
+		cipher:  feistel.NewFPECipher(hash.SHA_256, "some-32-byte-long-key-to-be-safe", 128),
 	}
 	// test bad method
 	req, err := http.NewRequest(http.MethodGet, "/create", nil)
@@ -189,6 +194,7 @@ func TestCreateUrlHandleFunc(t *testing.T) {
 	bm := &defaultUrlManager{
 		logger:  zap.NewNop(),
 		leveldb: NewMockDB(),
+		cipher:  feistel.NewFPECipher(hash.SHA_256, "some-32-byte-long-key-to-be-safe", 128),
 	}
 	req, err = http.NewRequest(http.MethodPost, "/create", bytes.NewBuffer([]byte(data)))
 	require.NoError(t, err)
